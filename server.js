@@ -7,6 +7,9 @@ const http = require("http");
 
 const { userRouter } = require("./routes/userRoutes");
 const { initializeSocket } = require("./socket/socket.io");
+const { boardRouter } = require("./routes/boardRoutes");
+const { columnRouter } = require("./routes/columnRoutes");
+const { taskRouter } = require("./routes/taskRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,7 +23,9 @@ app.get("/", (__, res) => {
   res.json({ message: "Server is running" });
 });
 app.use("/api/users", userRouter);
-
+app.use("/api/board", boardRouter);
+app.use("/api/column", columnRouter);
+app.use("/api/task", taskRouter);
 const server = http.createServer(app);
 
 mongoose

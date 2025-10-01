@@ -1,11 +1,10 @@
-
 const { Server } = require("socket.io");
 const cookie = require("cookie");
 const jwt = require("jsonwebtoken");
 
-const { Board } = require("../models/Board");
-const { Notification } = require("../models/Notification");
-const { BoardNotification } = require("../models/BoardNotification");
+const { Board } = require("../models/board");
+const { Notification } = require("../models/notification");
+const { BoardNotification } = require("../models/boardNotification");
 const mongoose = require("mongoose");
 const onlineUsers = new Map();
 
