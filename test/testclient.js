@@ -1,8 +1,6 @@
 const { io } = require("socket.io-client");
 
-const TOKEN =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OGQ2NWY2YWQ2YWY2OTM1Nzk0YTJjZDEiLCJpYXQiOjE3NTkyMDkyMTksImV4cCI6MTc1OTIzODAxOX0.uTM3jsWq999J8hMzGBPLTltPligMOJQ1_KkIIo8gYhU";
-
+const TOKEN =process.env.JWT_TOKEN1;
 const socket = io("http://localhost:3000", {
   auth: { token: TOKEN },
 });

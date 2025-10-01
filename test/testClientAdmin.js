@@ -1,7 +1,6 @@
 const { io } = require("socket.io-client");
 
-const token =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OGQ2M2VmZDBlYzIzYjczOTAwYzk2NjgiLCJpYXQiOjE3NTkyMDk0NDYsImV4cCI6MTc1OTIzODI0Nn0.Cb_ci-FGTABgv2GTrto5G6-cNAlyqKsG67Mgl5BFpJA";
+const token = process.env.JWT_TOKENAdmin;
 
 const socket = io("http://localhost:3000", {
   auth: { token: token },
@@ -18,8 +17,6 @@ socket.emit("joinboard", "68d64c9ecd12984c276ba4c9");
 socket.on("joinedboard", (data) => {
   console.log("Board joined", data);
 });
-
-
 
 // listen message from board
 socket.on("boardNotification", (data) => {

@@ -6,7 +6,7 @@ const cors = require("cors");
 const http = require("http");
 
 const { userRouter } = require("./routes/userRoutes");
-const { initSocket } = require("./socket/socket.io");
+const { initializeSocket } = require("./socket/socket.io");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,7 +27,7 @@ mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("DB is Connected...");
-    const io = initSocket(server);
+    const io = initializeSocket(server);
     server.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });

@@ -9,7 +9,7 @@ const onlineUsers = new Map();
 
 let io;
 
-function initSocket(server) {
+function initializeSocket(server) {
   io = new Server(server, {
     cors: {
       origin: "*",
@@ -129,4 +129,4 @@ function getIO() {
   return io;
 }
 
-module.exports = { initSocket, getIO, onlineUsers };
+module.exports = { initializeSocket, getIO, onlineUsers };
