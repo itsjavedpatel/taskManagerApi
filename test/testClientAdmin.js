@@ -1,3 +1,4 @@
+require("dotenv").config();
 const { io } = require("socket.io-client");
 
 const token = process.env.JWT_TOKENAdmin;

@@ -1,6 +1,6 @@
+require("dotenv").config();
 const { io } = require("socket.io-client");
-
-const TOKEN =process.env.JWT_TOKEN1;
+const TOKEN = process.env.JWT_TOKEN1;
 const socket = io("http://localhost:3000", {
   auth: { token: TOKEN },
 });

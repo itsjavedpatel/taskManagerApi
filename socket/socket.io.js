@@ -1,6 +1,8 @@
+
 const { Server } = require("socket.io");
 const cookie = require("cookie");
 const jwt = require("jsonwebtoken");
+
 const { Board } = require("../models/Board");
 const { Notification } = require("../models/Notification");
 const { BoardNotification } = require("../models/BoardNotification");
@@ -85,23 +87,23 @@ function initializeSocket(server) {
           boardId: new mongoose.Types.ObjectId(boardId),
           $nor: [{ sender: userId }],
           recipients: { $elemMatch: { user: userId, status: "sent" } },
-        }).then((notifications) => {
+        }).then(async (notifications) => {
           // console.log(notifications);
           notifications.forEach(async (notification) => {
             socket.emit("boardNotification", {
               message: notification.message,
               from: notification.sender,
             });
-            await BoardNotification.updateMany(
-              { recipients: { $elemMatch: { user: userId, status: "sent" } } },
-              {
-                $set: {
-                  "recipients.$.status": "delivered",
-                  "recipients.$.deliveredAt": new Date(),
-                },
-              }
-            );
           });
+          await BoardNotification.updateMany(
+            { recipients: { $elemMatch: { user: userId, status: "sent" } } },
+            {
+              $set: {
+                "recipients.$.status": "delivered",
+                "recipients.$.deliveredAt": new Date(),
+              },
+            }
+          );
         });
       } catch (error) {
         console.log(error);
