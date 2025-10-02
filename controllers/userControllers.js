@@ -8,17 +8,16 @@ const register = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.log("inside");
+      // console.log("inside");
       return res.status(400).json({
         message: "Registeration Failed!!",
         error: errors.array(),
         success: false,
-        data: {},
       });
     }
 
     const { name, email, password } = req.body;
-    if (!name || !email || !password) {
+    if (!name || !email) {
       if (!name)
         return res.status(400).json({
           message: "Registeration Failed",
@@ -31,34 +30,27 @@ const register = async (req, res) => {
           error: "email is required",
           success: false,
         });
-      if (!password)
-        return res.status(400).json({
-          message: "Registeration Failed",
-          error: "password is required",
-          success: false,
-        });
     }
     // check for already registered user
     const isRegisteredAlready = await User.findOne({ email }).select(
       "-password -refreshToken"
     );
-    console.log(isRegisteredAlready);
+    // console.log(isRegisteredAlready);
     if (isRegisteredAlready)
       return res.status(409).json({
         message: "Registeration Failed!!",
         error: "User Already exists",
         success: false,
-        data: {},
       });
     //   new user
-    const hashedPassword = await bcrypt.hash(password, 10);
-    // create user into the db
+    // hash password
+    const hashedPassword = await bcrypt.hash(password, process.env.SALT);
 
+    // create user into the db
     const newUser = new User({
       name,
       email,
       password: hashedPassword,
-      data: {},
     });
     await newUser.save();
 
@@ -66,14 +58,12 @@ const register = async (req, res) => {
       message: "Registeration successfull",
       error: null,
       success: true,
-      data: {},
     });
   } catch (error) {
     return res.status(500).json({
       message: "Registeration Failed!! server error",
       error: error.message,
       success: false,
-      data: {},
     });
   }
 };
@@ -101,7 +91,7 @@ const loginUser = async (req, res) => {
     if (findUser.isBlocked) {
       return res.status(404).json({
         message: "login failed",
-        error: "Your account is blocked.Contact Admin =",
+        error: "Your account is blocked.Contact Admin ",
         success: false,
       });
     }
