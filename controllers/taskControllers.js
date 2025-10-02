@@ -6,6 +6,9 @@ const { Column } = require("../models/column");
 const mongoose = require("mongoose");
 const { getIO, onlineUsers } = require("../socket/socket.io");
 const { Notification } = require("../models/notification");
+const puppeteer = require("puppeteer");
+const { generateTableHTML } = require("../utils/generateHtmlForUserReport");
+const dayjs = require("dayjs");
 
 const addTask = async (req, res) => {
   try {
@@ -278,6 +281,12 @@ const updateTaskStatusUser = async (req, res) => {
         new: true,
       }
     ).select("-__v -updatedAt");
+    if (status === "Completed") {
+      updatedTask.completedOn = new Date();
+    } else {
+      updatedTask.completedOn = "";
+    }
+    await updatedTask.save();
     if (!updatedTask) {
       return res.status(404).json({
         message: "Task status is not updated",
@@ -321,14 +330,16 @@ const updateTaskStatusUser = async (req, res) => {
 const generateTaskReport = async (req, res) => {
   try {
     const user = req.user;
+    const userId = new mongoose.Types.ObjectId(req.params.userId);
     // TODO
     // fetch all tasks which he has to do
     // generate pdf report
-
+    const assignedUser = await User.findById(userId).select("name email");
     const tasks = await Task.aggregate([
       {
         $match: {
-          assignedTo: req.user._id,
+          assignedTo: userId,
+          createdBy: user._id,
         },
       },
 
@@ -390,71 +401,41 @@ const generateTaskReport = async (req, res) => {
           priority: 1,
           updatedAt: 1,
           createdAt: 1,
+          completedOn: 1,
         },
       },
       {
         $sort: {
-          createdAt: 1,
+          createdAt: -1,
         },
       },
     ]);
 
-    const doc = new PDFDocument({ size: "A4", margin: 40 });
-    const filename = `taskreport${Date.now()}.pdf`;
+    let boards = [];
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment;filname="${filename}"`);
-
-    doc
-      .fontSize(24)
-      .text(`Task Progress Report`, { align: "center", underline: 1 });
-    doc.moveDown(2);
-
-    tasks.forEach((task, idx) => {
-      doc.fontSize(19).text(`S.No: ${idx + 1}`, { underline: true });
-      doc.moveDown(0.5);
-      doc
-        .fontSize(19)
-        .text(`Board:${task.columnDetails.boardDetails.boardName}`);
-      doc.moveDown(0.5);
-      doc.fontSize(18).text(`Project: ${task.columnDetails.columnName}`);
-      doc.moveDown(0.5);
-
-      doc.fontSize(16).text(`Task:${task.title}`);
-      doc.moveDown(0.5);
-      doc.fontSize(14).text(`Created On:${task.createdAt.toLocaleString()}`);
-      doc.moveDown(0.5);
-      doc.fontSize(14).text(`Description:${task.description}`);
-      doc.moveDown(0.5);
-      doc.fontSize(14).text(`Status:${task.status}`);
-      doc.moveDown(0.5);
-      doc.fontSize(14).text(`Priority:${task.priority}`);
-      doc.moveDown(0.5);
-      doc.fontSize(14).text(`Created by:${task.createdBy.name}`);
-      doc.moveDown(0.5);
-      doc.fontSize(14).text(`Due-date :${task.dueDate?.toLocaleString()}`);
-      doc.moveDown(0.5);
-      if (task.status === "Completed") {
-        doc
-          .fontSize(16)
-          .text(`Task completed on :${task.updatedAt?.toLocaleString()}`);
-        doc.moveDown(0.5);
-      }
-      doc.moveDown(1);
+    tasks.forEach((task) => {
+      const boardName = task.columnDetails?.boardDetails.boardName;
+      const columnName = task.columnDetails?.columnName;
+      if (!boards[boardName]) boards[boardName] = {};
+      if (!boards[boardName][columnName]) boards[boardName][columnName] = [];
+      boards[boardName][columnName].push(task);
     });
 
-    doc.end();
-    doc.pipe(res);
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
 
-    // return res.status(200).json({
-    //   message: " pdf is generated",
-    //   error: null,
-    //   success: true,
-    //   tasks,
-    // });
+    const html = generateTableHTML(boards, assignedUser.name);
+    await page.setContent(html, { waitUntil: "networkidle0" });
+    const buffer = await page.screenshot({ type: "png", fullPage: true });
+
+    await browser.close();
+
+    res.set("Content-Type", "image/png");
+    res.send(buffer);
   } catch (error) {
+    // console.log(error);
     res.status(500).json({
-      message: "Internal server error",
+      message: "Internal Server Error",
       error: error.message,
       success: false,
     });

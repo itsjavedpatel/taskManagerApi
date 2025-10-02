@@ -1,7 +1,6 @@
 const { Router } = require("express");
 const { authUser } = require("../middlewares/authUser");
 const {
-  generateReportBoard,
   createBoard,
   fetchAllBoardForUser,
   fetchBoard,
@@ -10,6 +9,8 @@ const {
   deleteBoard,
   addMember,
   removeMember,
+  generateReportBoard,
+  generateFullReport,
 } = require("../controllers/boardControllers");
 
 const boardRouter = Router();
@@ -27,7 +28,13 @@ boardRouter.patch("/:boardId/remove/:userId", authUser, removeMember);
 boardRouter.post("/chat/:boardId", authUser, groupChat);
 boardRouter.get("/getchat/:boardId", authUser, fetchChat);
 
-boardRouter.get("/generate-pdf/:boardId", authUser, generateReportBoard);
+boardRouter.get(
+  "/generate-board-report/:boardId",
+  authUser,
+  generateReportBoard
+);
+
+boardRouter.get("/generate-full-report", authUser, generateFullReport);
 boardRouter.post("/createboard", authUser, createBoard);
 
 module.exports = { boardRouter };

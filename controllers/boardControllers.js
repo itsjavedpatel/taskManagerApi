@@ -1,7 +1,9 @@
 const mongoose = require("mongoose");
-const PDFDocument = require("pdfkit");
 const { Board } = require("../models/board");
 const { BoardNotification } = require("../models/boardNotification");
+const { generateFullBoardHtml } = require("../utils/generateBoardReportHTML");
+const puppeteer = require("puppeteer");
+const { User } = require("../models/user");
 
 const createBoard = async (req, res) => {
   try {
@@ -23,7 +25,7 @@ const createBoard = async (req, res) => {
     const newBoard = await Board.create({
       boardName: name,
       ownerId: userId,
-      members: [ownerId],
+      members: [userId],
     });
     // push owner inside member also
 
@@ -195,6 +197,7 @@ const fetchAllBoardForUser = async (req, res) => {
 };
 
 // need to generate pdf reports for the board projects(means column) for all task progress
+
 const generateReportBoard = async (req, res) => {
   try {
     const user = req.user;
@@ -205,8 +208,6 @@ const generateReportBoard = async (req, res) => {
     // get all columns
     // get all task inside each columns
     // get userDetails who performed that task
-
-    // then generate pdf report
 
     const boardDetails = await Board.aggregate([
       {
@@ -255,6 +256,7 @@ const generateReportBoard = async (req, res) => {
                       dueDate: 1,
                       updatedAt: 1,
                       assignedTo: { $first: "$assignedToDetails" },
+                      completedOn: 1,
                     },
                   },
                 ],
@@ -280,60 +282,150 @@ const generateReportBoard = async (req, res) => {
         },
       },
     ]);
+    //! How to generate image using puppeter
+    // TODO:-
+    // Launch Puppeteer
+    // creata a page
+    // Generate HTML for specific layout
+    // Set content inside th page
+    // Generate screenshot as a buffer for image
+    // close the Puppeteer
+    // set the header of response to image/png
+    // send the image buffer in response
 
-    const doc = new PDFDocument({ margin: 30, size: "A4" });
-    const filename = `projectsReport${Date.now()}.pdf`;
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+    const html = generateFullBoardHtml(boardDetails);
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment;filename="${filename}"`);
+    await page.setContent(html, { waitUntil: "networkidle0" });
 
-    doc.fontSize(24).text(`${boardDetails[0].boardName}'s Project Details`, {
-      align: "center",
+    const buffer = await page.screenshot({ type: "png", fullPage: true });
+
+    await browser.close();
+
+    res.set({
+      "Content-Type": "image/png",
     });
-    doc.moveDown(2);
+    res.send(buffer);
 
-    boardDetails[0].columnDetails.forEach((col) => {
-      doc
-        .fontSize(20)
-        .text(`Project: ${col.columnName}`, { underline: true, columnGap: 3 });
-      doc.moveDown(1);
-      if (col.taskDetails.length === 0) {
-        doc.fontSize(17).text("Tasks are not added yet..");
-        return;
-      }
-      col.taskDetails.forEach((task, idx) => {
-        doc.fontSize(17).text(`S.No:${idx + 1}`, {
-          underline: 1,
-        });
-        doc.moveDown(0.25);
-        doc.fontSize(17).text(`Task: ${task.title}`);
-        doc.moveDown(0.5);
-        doc.fontSize(14).text(`Created on: ${task.createdAt.toLocaleString()}`);
-        doc.moveDown(0.5);
-        if (task.assignedTo) {
-          doc.fontSize(14).text(`Assigned To: ${task.assignedTo.name}`);
-          doc.moveDown(0.5);
-        }
-        doc.fontSize(14).text(`Due Date: ${task.dueDate?.toLocaleString()}`);
-        doc.moveDown(0.5);
-        doc.fontSize(14).text(`Status: ${task.status}`);
-        doc.moveDown(0.5);
-        doc.fontSize(14).text(`Priority: ${task.priority}`);
-        doc.moveDown(0.5);
-        if (task.status === "Completed") {
-          doc
-            .fontSize(16)
-            .text(`Task is completed on ${task.updatedAt.toLocaleString()}`);
-        }
-        doc.moveDown(1);
-      });
-    });
-    doc.end();
-    doc.pipe(res);
+    // const pdfBuffer = await page.pdf({
+    //   format: "A4",
+    //   printBackground: true,
+    //   margin: { top: "20px", bottom: "20px", left: "10px", right: "10px" },
+    // });
+
+    // res.set({
+    //   'Content-Type': 'application/pdf',
+    //   'Content-Disposition': `attachment; filename="TaskReport.pdf"`,
+    //   'Content-Length': pdfBuffer.length,
+    // });
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+      success: false,
+    });
+  }
+};
+
+const generateFullReport = async (req, res) => {
+  try {
+    const user = req.user;
+    const boardDetails = await Board.aggregate([
+      {
+        $match: {
+          ownerId: user._id,
+        },
+      },
+      {
+        $lookup: {
+          from: "columns",
+          localField: "_id",
+          foreignField: "board",
+          as: "columnDetails",
+          pipeline: [
+            {
+              $lookup: {
+                from: "tasks",
+                localField: "_id",
+                foreignField: "column",
+                as: "taskDetails",
+                pipeline: [
+                  {
+                    $lookup: {
+                      from: "users",
+                      localField: "assignedTo",
+                      foreignField: "_id",
+                      as: "assignedToDetails",
+                      pipeline: [
+                        {
+                          $project: {
+                            name: 1,
+                            email: 1,
+                          },
+                        },
+                      ],
+                    },
+                  },
+                  {
+                    $project: {
+                      title: 1,
+                      assignedTo: { $first: "$assignedToDetails" },
+                      createdAt: 1,
+                      status: 1,
+                      completedOn: 1,
+                      updatedAt: 1,
+                      description: 1,
+                      dueDate: 1,
+                      priority: 1,
+                    },
+                  },
+                ],
+              },
+            },
+            {
+              $project: {
+                columnName: 1,
+                taskDetails: 1,
+                createdAt: 1,
+              },
+            },
+          ],
+        },
+      },
+
+      {
+        $project: {
+          boardName: 1,
+          columnDetails: 1,
+          createdAt: 1,
+        },
+      },
+    ]);
+
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+
+    const html = generateFullBoardHtml(boardDetails);
+
+    await page.setContent(html, { waitUntil: "networkidle0" });
+
+    const buffer = await page.screenshot({ type: "png", fullPage: true });
+
+    await browser.close();
+    res.set({ "Content-Type": "image/png" });
+    res.send(buffer);
+
+    // res.status(200).json({
+    //   message: "Fetched Successfully",
+    //   boardDetails,
+    //   error: null,
+    //   success: true,
+    // });
+  } catch (error) {
     return res.status(500).json({
-      message: "Unable to Generate report",
+      message: "Internal server error",
       error: error.message,
       success: false,
     });
@@ -761,4 +853,5 @@ module.exports = {
   groupChat,
   addMember,
   removeMember,
+  generateFullReport,
 };
