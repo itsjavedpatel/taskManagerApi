@@ -1,15 +1,7 @@
 const { validationResult } = require("express-validator");
-const PDFDocument = require("pdfkit");
 const { User } = require("../models/user");
-const { Board } = require("../models/board");
-const { Task } = require("../models/task");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const { Column } = require("../models/column");
-const mongoose = require("mongoose");
-const { getIO, onlineUsers } = require("../socket/socket.io");
-const { Notification } = require("../models/notification");
-const { BoardNotification } = require("../models/boardNotification");
 
 // register  user
 const register = async (req, res) => {
@@ -165,11 +157,7 @@ const loginUser = async (req, res) => {
   }
 };
 
-
-
 module.exports = {
   register,
   loginUser,
-
- 
 };

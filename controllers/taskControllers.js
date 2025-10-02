@@ -1,4 +1,3 @@
-const PDFDocument = require("pdfkit");
 const { User } = require("../models/user");
 const { Board } = require("../models/board");
 const { Task } = require("../models/task");
@@ -8,7 +7,6 @@ const { getIO, onlineUsers } = require("../socket/socket.io");
 const { Notification } = require("../models/notification");
 const puppeteer = require("puppeteer");
 const { generateTableHTML } = require("../utils/generateHtmlForUserReport");
-const dayjs = require("dayjs");
 
 const addTask = async (req, res) => {
   try {

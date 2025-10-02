@@ -96,9 +96,7 @@ function generateFullBoardHtml(boards) {
           th { font-weight: 600; text-transform: uppercase;border:1px solid #f0f1f3 }
           .board-header { background:#2C3E50 linear-gradient(135deg, #32eac56c, #2C3E50); color: white; font-size: 18px; text-align: center; }
           .project-header { background: #43576bff; color: #ECF0F1; font-size: 16px; text-align: center; }
-          .task-header { background: #dcdfe1ff;color: gray; font-size: 14px; }
-          tbody tr:nth-child(even) td { background: #FFFFFF border: #D6DBDF }
-          tBody tr:nth-child(odd) td {background: #F8F9FA border:#D6DBDF}
+          .task-header { background: #dcdfe1ff;color: gray; font-size: 14px; }  
           td{ color:#716e6eff;}
          
         </style>

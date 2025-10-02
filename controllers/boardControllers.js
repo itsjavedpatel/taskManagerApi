@@ -15,7 +15,6 @@ const createBoard = async (req, res) => {
         message: "Board is not created",
         error: "Name is required",
         success: false,
-        data: {},
       });
     }
     // TODO
@@ -40,7 +39,6 @@ const createBoard = async (req, res) => {
       message: "login Failed!! server error",
       error: error.message,
       success: false,
-      data: {},
     });
   }
 };
